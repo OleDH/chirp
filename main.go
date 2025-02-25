@@ -111,9 +111,11 @@ func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
 
 	currentHitcount := cfg.fileserverHits.Load()
 
-	formatted := fmt.Sprintf("Hits: %d", currentHitcount)
+	formatted := fmt.Sprintf("<html>\n<body>\n<h1>\nWelcome, Chirpy Admin</h1>\n<p>Chirpy has been visited %d times!</p>\n</body>\n</html>", currentHitcount)
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	//fmt.Sprintf("Hits: %d", currentHitcount)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(formatted))
@@ -152,9 +154,9 @@ func main() {
 
 	mux.HandleFunc("GET /api/healthz", healthCheck)
 
-	mux.HandleFunc("GET /api/metrics", apiCfg.metricsHandler)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.metricsHandler)
 
-	mux.HandleFunc("POST /api/reset", apiCfg.resetHandler)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetHandler)
 
 	mux.HandleFunc("POST /api/validate_chirp", validationHandler)
 
