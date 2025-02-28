@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 )
 
@@ -27,7 +28,33 @@ func healthCheck(writer http.ResponseWriter, req *http.Request) {
 
 }
 
+func sanitize(input string) string {
+
+	substrings := strings.Split(input, " ")
+
+	for i, v := range substrings {
+
+		compareString := strings.ToLower(v)
+
+		if compareString == "kerfuffle" || compareString == "sharbert" || compareString == "fornax" {
+
+			substrings[i] = "****"
+
+		}
+
+	}
+	output := strings.Join(substrings, " ")
+
+	return output
+
+}
+
 //decode:
+
+//todo: implement these helper functions:
+//respondWithError(w http.ResponseWriter, code int, msg string)
+//respondWithJSON(w http.ResponseWriter, code int, payload interface{})
+//Please refactor, for me
 
 func validationHandler(writer http.ResponseWriter, req *http.Request) {
 	type parameters struct {
@@ -44,8 +71,8 @@ func validationHandler(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	type returnVals struct {
-		Valid bool   `json:"valid,omitempty"`
-		Error string `json:"error,omitempty"`
+		Cleaned_body string `json:"cleaned_body,omitempty"`
+		Error        string `json:"error,omitempty"`
 	}
 
 	respBody := returnVals{}
@@ -64,7 +91,8 @@ func validationHandler(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	respBody.Valid = true
+	respBody.Cleaned_body = sanitize(params.Body)
+
 	dat, err := json.Marshal(respBody)
 	if err != nil {
 		writer.WriteHeader(500)
@@ -81,8 +109,6 @@ func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
 	currentHitcount := cfg.fileserverHits.Load()
 
 	formatted := fmt.Sprintf("<html>\n<body>\n<h1>\nWelcome, Chirpy Admin</h1>\n<p>Chirpy has been visited %d times!</p>\n</body>\n</html>", currentHitcount)
-
-	//fmt.Sprintf("Hits: %d", currentHitcount)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
