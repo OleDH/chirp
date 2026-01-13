@@ -1,16 +1,23 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync/atomic"
+
+	"github.com/OleDH/internal/database"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
-	fileserverHits atomic.Int32
+	fileserverHits  atomic.Int32
+	databaseQueries *database.Queries
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -131,6 +138,14 @@ func (cfg *apiConfig) resetHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
+	godotenv.Load()
+
+	dbURL := os.Getenv("DB_URL")
+
+	db, err := sql.Open("postgres", dbURL)
+
+	dbQueries := database.New(db)
+
 	const port = "8080"
 
 	mux := http.NewServeMux()
@@ -141,7 +156,10 @@ func main() {
 		Handler: mux,
 	}
 
-	apiCfg := apiConfig{}
+	apiCfg := apiConfig{
+
+		databaseQueries: dbQueries,
+	}
 
 	fileServer := http.FileServer(http.Dir("."))
 	handler := http.StripPrefix("/app/", fileServer)
@@ -155,7 +173,7 @@ func main() {
 
 	mux.HandleFunc("POST /api/validate_chirp", validationHandler)
 
-	err := Server.ListenAndServe()
+	err = Server.ListenAndServe()
 
 	if err != nil {
 		log.Fatal(err)
